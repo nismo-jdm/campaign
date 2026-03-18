@@ -235,16 +235,31 @@
   downloadBtn.addEventListener("click", async () => {
     try {
       const rect = posterArea.getBoundingClientRect();
+      const scrollX = window.scrollX || window.pageXOffset;
+      const scrollY = window.scrollY || window.pageYOffset;
 
       const canvas = await html2canvas(posterArea, {
         useCORS: true,
         allowTaint: true,
-        backgroundColor: null,
+        backgroundColor: "#ffffff",
         scale: 4,
-        width: rect.width,
-        height: rect.height,
-        windowWidth: rect.width,
-        windowHeight: rect.height
+        width: Math.round(rect.width),
+        height: Math.round(rect.height),
+        x: 0,
+        y: 0,
+        scrollX: -(rect.left + scrollX),
+        scrollY: -(rect.top + scrollY),
+        windowWidth: document.documentElement.scrollWidth,
+        windowHeight: document.documentElement.scrollHeight,
+        onclone: (clonedDoc) => {
+          // Make sure cloned poster fills exactly its natural size
+          const clonedPoster = clonedDoc.getElementById("posterphoto");
+          if (clonedPoster) {
+            clonedPoster.style.position = "relative";
+            clonedPoster.style.margin = "0";
+            clonedPoster.style.padding = "0";
+          }
+        }
       });
 
       canvas.toBlob((blob) => {
