@@ -231,37 +231,61 @@
     userName.textContent = nameInput.value.trim();
   });
 
-  // HD Download
+  // HD Download — pure canvas draw, zero white borders
   downloadBtn.addEventListener("click", async () => {
     try {
-      const rect = posterArea.getBoundingClientRect();
-      const scrollX = window.scrollX || window.pageXOffset;
-      const scrollY = window.scrollY || window.pageYOffset;
+      const bgImg   = document.getElementById("posterBg");
+      const userImg = document.getElementById("userPhoto");
 
-      const canvas = await html2canvas(posterArea, {
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-        scale: 4,
-        width: Math.round(rect.width),
-        height: Math.round(rect.height),
-        x: 0,
-        y: 0,
-        scrollX: -(rect.left + scrollX),
-        scrollY: -(rect.top + scrollY),
-        windowWidth: document.documentElement.scrollWidth,
-        windowHeight: document.documentElement.scrollHeight,
-        onclone: (clonedDoc) => {
-          // Make sure cloned poster fills exactly its natural size
-          const clonedPoster = clonedDoc.getElementById("posterphoto");
-          if (clonedPoster) {
-            clonedPoster.style.position = "relative";
-            clonedPoster.style.margin = "0";
-            clonedPoster.style.padding = "0";
-          }
-        }
-      });
+      const W = bgImg.naturalWidth;
+      const H = bgImg.naturalHeight;
 
+      const canvas = document.createElement("canvas");
+      canvas.width  = W;
+      canvas.height = H;
+      const ctx = canvas.getContext("2d");
+
+      // 1. Draw background poster
+      ctx.drawImage(bgImg, 0, 0, W, H);
+
+      // 2. Draw user photo if uploaded
+      if (userImg && userImg.src && userImg.style.display !== "none") {
+        const photoLeft   = W * 0.10;
+        const photoWidth  = W * 0.80;
+        const photoHeight = photoWidth / 2;
+        const photoCenterY = H * 0.45;
+        const photoTop    = photoCenterY - photoHeight / 2;
+        const radius      = W * 0.04;
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(photoLeft + radius, photoTop);
+        ctx.lineTo(photoLeft + photoWidth - radius, photoTop);
+        ctx.quadraticCurveTo(photoLeft + photoWidth, photoTop, photoLeft + photoWidth, photoTop + radius);
+        ctx.lineTo(photoLeft + photoWidth, photoTop + photoHeight - radius);
+        ctx.quadraticCurveTo(photoLeft + photoWidth, photoTop + photoHeight, photoLeft + photoWidth - radius, photoTop + photoHeight);
+        ctx.lineTo(photoLeft + radius, photoTop + photoHeight);
+        ctx.quadraticCurveTo(photoLeft, photoTop + photoHeight, photoLeft, photoTop + photoHeight - radius);
+        ctx.lineTo(photoLeft, photoTop + radius);
+        ctx.quadraticCurveTo(photoLeft, photoTop, photoLeft + radius, photoTop);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(userImg, photoLeft, photoTop, photoWidth, photoHeight);
+        ctx.restore();
+      }
+
+      // 3. Draw name text
+      const nameText = document.getElementById("userName").textContent.trim();
+      if (nameText) {
+        const fontSize = Math.round(W * 0.045);
+        ctx.font         = `600 ${fontSize}px 'Anek Malayalam', sans-serif`;
+        ctx.fillStyle    = "#92356e";
+        ctx.textAlign    = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(nameText, W / 2, H - H * 0.35);
+      }
+
+      // 4. Export exact poster size, no white borders
       canvas.toBlob((blob) => {
         const link = document.createElement("a");
         link.download = "raheemiyya_campaign.png";
